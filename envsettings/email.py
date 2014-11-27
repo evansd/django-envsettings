@@ -26,13 +26,23 @@ class email(URLConfigBase):
     }
 
     @classmethod
-    def generic_handler(cls, parsed_url, config):
+    def handle_smtp(cls, parsed_url, config):
+        if config.get('EMAIL_USE_TLS'):
+            default_port = 587
+        elif config.get('EMAIL_USE_SSL'):
+            default_port = 465
+        else:
+            default_port = 25
         config.update({
             'EMAIL_HOST': parsed_url.hostname or 'localhost',
-            'EMAIL_PORT': parsed_url.port or 25,
+            'EMAIL_PORT': parsed_url.port or default_port,
             'EMAIL_HOST_USER': parsed_url.username or '',
             'EMAIL_HOST_PASSWORD': parsed_url.password or ''})
         return config
+
+    @classmethod
+    def handle_smtps(cls, parsed_url, config):
+        return cls.handle_smtp(parsed_url, config)
 
     @classmethod
     def handle_file(cls, parsed_url, config):
