@@ -2,7 +2,7 @@ import re
 
 from django.core.exceptions import ImproperlyConfigured
 
-from .base import URLConfigBase
+from .base import URLConfigBase, is_importable
 
 
 class cache(URLConfigBase):
@@ -75,27 +75,18 @@ class cache(URLConfigBase):
 
     @classmethod
     def set_memcached_backend(cls, config):
-        try:
-            import django_pylibmc; django_pylibmc # NOQA
-            config['BACKEND'] = 'django_pylibmc.memcached.PyLibMCCache'
+        config['BACKEND'] = 'django_pylibmc.memcached.PyLibMCCache'
+        if is_importable(config['BACKEND']):
             return
-        except ImportError:
-            pass
         if config.get('BINARY'):
-            try:
-                import django_bmemcached; django_bmemcached # NOQA
-                config['BACKEND'] = 'django_bmemcached.memcached.BMemcached'
+            config['BACKEND'] = 'django_bmemcached.memcached.BMemcached'
+            if is_importable(config['BACKEND']):
                 return
-            except ImportError:
-                pass
         if 'USERNAME' in config or 'PASSWORD' in config:
             raise ImproperlyConfigured('')
         if config.get('BINARY'):
             raise ImproperlyConfigured('')
-        try:
-            import pylibmc; pylibmc # NOQA
+        if is_importable('pylibmc'):
             config['BACKEND'] = 'django.core.cache.backends.memcached.PyLibMCCache'
             return
-        except ImportError:
-            pass
         config['BACKEND'] = 'django.core.cache.backends.memcached.MemcachedCache'

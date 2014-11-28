@@ -1,4 +1,5 @@
 import copy
+import importlib
 import os
 import re
 try:
@@ -14,15 +15,25 @@ except ImportError:
     from django.utils.encoding import smart_unicode as smart_text
 
 
-def get(varname, default=None, convert=smart_text):
+def get(varlist, default=None, convert=smart_text):
     """
     Gets a key from os.environ, converting it to supplied type (unicode string by
     default)
     """
-    value = os.getenv(varname, default)
+    if hasattr(varlist, 'strip'):
+        varlist = [varlist]
+    value = default
+    for varname in varlist:
+        try:
+            value = os.environ[varname]
+        except KeyError:
+            continue
+        else:
+            break
     if value is None:
         raise ImproperlyConfigured(
-                "Environment variable '{}' not defined".format(varname))
+                "Environment variable{} '{}' not defined".format(
+                    's' if len(varlist) > 1 else '', "', '".join(varlist)))
     try:
         return convert(value)
     except (TypeError, ValueError) as exc:
@@ -45,12 +56,12 @@ def parse_bool(value):
         raise ValueError(
                 "invalid boolean '{}' (must be 'True' or 'False')".format(value))
 
-def get_bool(varname, default=None):
-    return get(varname, default, convert=parse_bool)
+def get_bool(varlist, default=None):
+    return get(varlist, default, convert=parse_bool)
 
 
-def get_int(varname, default=None):
-    return get(varname, default, convert=int)
+def get_int(varlist, default=None):
+    return get(varlist, default, convert=int)
 
 
 class URLConfigBase(object):
@@ -58,8 +69,8 @@ class URLConfigBase(object):
     CONFIG = {}
 
     @classmethod
-    def get(cls, varname, default=None):
-        return get(varname, default, convert=cls.parse)
+    def get(cls, varlist, default=None):
+        return get(varlist, default, convert=cls.parse)
 
     @classmethod
     def parse(cls, url):
@@ -80,8 +91,33 @@ class URLConfigBase(object):
         return getattr(cls, method_name, cls.generic_handler)
 
     @classmethod
-    def generic_handler(self, parsed_url, config):
+    def generic_handler(cls, parsed_url, config):
         return config
+
+    @classmethod
+    def auto_config(cls, extra_vars=(), default=None):
+        method_list = [
+                getattr(cls, attr) for attr in sorted(dir(cls))
+                if attr.startswith('auto_config_')]
+        for method in method_list:
+            url = method()
+            if url:
+                return cls.parse(url)
+        if not extra_vars and default is None:
+            raise ImproperlyConfigured(
+                    'Unable to auto-configure {}: no appropriate '
+                    'environment variables found'.format(cls.__name__))
+        return cls.get(extra_vars, default)
+
+
+
+def is_importable(module_name):
+    package = module_name.split('.')[0]
+    try:
+        importlib.import_modulue(package)
+        return True
+    except ImportError:
+        return False
 
 
 def get_logging_config(level='INFO'):

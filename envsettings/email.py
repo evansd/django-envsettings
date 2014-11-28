@@ -1,6 +1,6 @@
 import email.utils as email_utils
 
-from .base import get, URLConfigBase
+from .base import get, URLConfigBase, is_importable
 
 
 def parse_email_list(email_string):
@@ -19,10 +19,11 @@ class email(URLConfigBase):
         'smtps': {'EMAIL_BACKEND': 'django.core.mail.backends.smtp.EmailBackend',
             'EMAIL_USE_TLS': True},
         'file': {'EMAIL_BACKEND': 'django.core.mail.backends.filebased.EmailBackend'},
-        'http+mailgun': {'EMAIL_BACKEND': 'django_mailgun.MailgunBackend'},
-        'http+sendgrid': {'EMAIL_BACKEND': 'sgbackend.SendGridBackend'},
-        'http+mandrill': {'EMAIL_BACKEND': 'djrill.mail.backends.djrill.DjrillBackend'},
-        'http+ses': {'EMAIL_BACKEND': 'django_ses_backend.SESBackend'},
+        'mailgun': {'EMAIL_BACKEND': 'django_mailgun.MailgunBackend'},
+        'sendgrid': {'EMAIL_BACKEND': 'sgbackend.SendGridBackend'},
+        'mandrill': {'EMAIL_BACKEND': 'djrill.mail.backends.djrill.DjrillBackend'},
+        'ses': {'EMAIL_BACKEND': 'django_ses_backend.SESBackend'},
+        'postmark': {'EMAIL_BACKEND': 'postmark.django_backend.EmailBackend'},
     }
 
     @classmethod
@@ -54,23 +55,63 @@ class email(URLConfigBase):
             config['EMAIL_FILE_PATH'] = parsed_url.path
         return config
 
-    def handle_http_mailgun(cls, parsed_url, config):
+    def handle_mailgun(cls, parsed_url, config):
         config['MAILGUN_ACCESS_KEY'] = parsed_url.password
         config['MAILGUN_SERVER_NAME'] = parsed_url.hostname
         return config
 
-    def handle_http_sendgrid(cls, parsed_url, config):
+    def auto_config_mailgun(cls, environ):
+        try:
+            api_key, login, password, server, port = [
+                    environ['MAILGUN_' + key] for key in (
+                        'API_KEY', 'SMTP_LOGIN', 'SMTP_PASSWORD',
+                        'SMTP_SERVER', 'SMTP_PORT')]
+        except KeyError:
+            return
+        if is_importable(cls.CONFIG['mailgun']['EMAIL_BACKEND']):
+            domain = login.split('@')[-1]
+            return 'mailgun://api:{api_key}@{domain}'.format(
+                    api_key=api_key, domain=domain)
+        else:
+            return 'smtps://{login}:{password}@{server}:{port}'.format(
+                    login=login, password=password, server=server, port=port)
+
+    def handle_sendgrid(cls, parsed_url, config):
         config['SENDGRID_USER'] = parsed_url.username
         config['SENDGRID_PASSWORD'] = parsed_url.password
         return config
 
-    def handle_http_mandrill(cls, parsed_url, config):
+    def auto_config_sendgrid(cls, environ):
+        try:
+            user, password = environ['SENDGRID_USERNAME'], environ['SENDGRID_PASSWORD']
+        except KeyError:
+            return
+        if is_importable(cls.CONFIG['sendgrid']['EMAIL_BACKEND']):
+            return 'sendgrid://{user}:{password}@sendgrid.com'.format(
+                    user=user, password=password)
+        else:
+            return 'smtps://{user}:{password}@smtp.sendgrid.net:587'.format(
+                    user=user, password=password)
+
+    def handle_mandrill(cls, parsed_url, config):
         config['MANDRILL_API_KEY'] = parsed_url.password
         if parsed_url.username:
             config['MANDRILL_SUBACCOUNT'] = parsed_url.username
         return config
 
-    def handle_http_ses(cls, parsed_url, config):
+    def auto_config_mandrill(cls, environ):
+        try:
+            user, api_key = environ['MANDRIL_USERNAME'], environ['MANDRILL_APIKEY']
+        except KeyError:
+            return
+        if is_importable(cls.CONFIG['mandrill']['EMAIL_BACKEND']):
+            return 'mandrill://:{api_key}@mandrillapp.com'.format(
+                    api_key=api_key)
+        else:
+            return 'smtps://{user}:{api_key}@smtp.mandrillapp.com:587'.format(
+                    user=user, api_key=api_key)
+
+    def handle_ses(cls, parsed_url, config):
         if parsed_url.username:
             config['AWS_SES_ACCESS_KEY_ID'] = parsed_url.username
         if parsed_url.password:
@@ -81,3 +122,20 @@ class email(URLConfigBase):
             else:
                 config['AWS_SES_REGION_NAME'] = parsed_url.hostname
         return config
+
+    def handle_postmark(cls, parsed_url, config):
+        config['POSTMARK_API_KEY'] = parsed_url.password
+        return config
+
+    def auto_config_postmark(cls, environ):
+        try:
+            api_key, server = (environ['POSTMARK_API_KEY'],
+                    environ['POSTMARK_SMTP_SERVER'])
+        except KeyError:
+            return
+        if is_importable(cls.CONFIG['postmark']['EMAIL_BACKEND']):
+            return 'postmark://user:{api_key}@postmarkapp.com'.format(
+                    api_key=api_key)
+        else:
+            return 'smtps://{api_key}:{api_key}@{server}:25'.format(
+                    api_key=api_key, server=server)
