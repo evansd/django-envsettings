@@ -5,7 +5,7 @@ from django.core.exceptions import ImproperlyConfigured
 from .base import URLConfigBase, is_importable
 
 
-class cache(URLConfigBase):
+class CacheConfig(URLConfigBase):
 
     CONFIG = {
         'locmem': {'BACKEND': 'django.core.cache.backends.locmem.LocMemCache'},
@@ -16,21 +16,18 @@ class cache(URLConfigBase):
         'redis': {'BACKEND': 'redis_cache.cache.RedisCache'},
     }
 
-    @classmethod
-    def handle_file(cls, parsed_url, config):
+    def handle_file(self, parsed_url, config):
         if parsed_url.path == '/dev/null':
             config['BACKEND'] = 'django.core.cache.backends.dummy.DummyCache'
         else:
             config['LOCATION'] = parsed_url.path
         return config
 
-    @classmethod
-    def handle_locmem(cls, parsed_url, config):
+    def handle_locmem(self, parsed_url, config):
         config['LOCATION'] = parsed_url.hostname + parsed_url.path
         return config
 
-    @classmethod
-    def handle_redis(cls, parsed_url, config):
+    def handle_redis(self, parsed_url, config):
         if parsed_url.hostname:
             db_num = parsed_url.path[1:]
             location = '{}:{}:{}'.format(
@@ -47,8 +44,7 @@ class cache(URLConfigBase):
             config.setdefault('OPTIONS', {})['PASSWORD'] = parsed_url.password
         return config
 
-    @classmethod
-    def handle_memcached(cls, parsed_url, config):
+    def handle_memcached(self, parsed_url, config):
         if parsed_url.hostname:
             netloc = parsed_url.netloc.split('@')[-1]
             if ',' in netloc:
@@ -64,17 +60,15 @@ class cache(URLConfigBase):
             config['USERNAME'] = parsed_url.username
         if parsed_url.password:
             config['PASSWORD'] = parsed_url.password
-        # Don't auto-select backend if one has been explicitly configured
+        # Only auto-select backend if one hasn't been explicitly configured
         if not config['BACKEND']:
-            cls.set_memcached_backend(config)
+            self.set_memcached_backend(config)
         return config
 
-    @classmethod
-    def handle_memcached_binary(cls, parsed_url, config):
-        return cls.handle_memcached(parsed_url, config)
+    def handle_memcached_binary(self, parsed_url, config):
+        return self.handle_memcached(parsed_url, config)
 
-    @classmethod
-    def set_memcached_backend(cls, config):
+    def set_memcached_backend(self, config):
         config['BACKEND'] = 'django_pylibmc.memcached.PyLibMCCache'
         if is_importable(config['BACKEND']):
             return

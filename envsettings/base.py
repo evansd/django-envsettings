@@ -15,106 +15,93 @@ except ImportError:
     from django.utils.encoding import smart_unicode as smart_text
 
 
-def get(varlist, default=None, convert=smart_text):
-    """
-    Gets a key from os.environ, converting it to supplied type (unicode string by
-    default)
-    """
-    if hasattr(varlist, 'strip'):
-        varlist = [varlist]
-    value = default
-    for varname in varlist:
-        try:
-            value = os.environ[varname]
-        except KeyError:
-            continue
+class EnvSettings(object):
+
+    def __init__(self, environ=os.environ):
+        self.environ = environ
+
+    def get(self, keys, default=None, convert=smart_text):
+        if hasattr(keys, 'strip'):
+            keys = [keys]
+        for key in keys:
+            try:
+                value = self.environ[key]
+                break
+            except KeyError:
+                continue
         else:
-            break
-    if value is None:
-        raise ImproperlyConfigured(
-                "Environment variable{} '{}' not defined".format(
-                    's' if len(varlist) > 1 else '', "', '".join(varlist)))
-    try:
+            value = default if not callable(default) else default()
+        if value is None:
+            raise ImproperlyConfigured(
+                    'No environment variables matching {!r}'.format(keys))
         return convert(value)
-    except (TypeError, ValueError) as exc:
-        raise ImproperlyConfigured(
-            "Error in environment variable '{}': {}" .format(varname, exc))
+
+    def parse_bool(self, value):
+        """
+        Converts 'True' and 'False' strings to booleans
+        """
+        if isinstance(value, bool):
+            return value
+        normalized = value.strip().lower()
+        if normalized == 'true':
+            return True
+        elif normalized == 'false':
+            return False
+        else:
+            raise ValueError(
+                    "invalid boolean '{}' (must be 'True' or 'False')".format(value))
+
+    def get_bool(self, keys, default=None):
+        return self.get(keys, default, convert=self.parse_bool)
+
+    def get_int(self, keys, default=None):
+        return self.get(keys, default, convert=int)
 
 
-def parse_bool(value):
-    """
-    Converts 'True' and 'False' strings to booleans
-    """
-    if isinstance(value, bool):
-        return value
-    normalized = value.strip().lower()
-    if normalized == 'true':
-        return True
-    elif normalized == 'false':
-        return False
-    else:
-        raise ValueError(
-                "invalid boolean '{}' (must be 'True' or 'False')".format(value))
-
-def get_bool(varlist, default=None):
-    return get(varlist, default, convert=parse_bool)
-
-
-def get_int(varlist, default=None):
-    return get(varlist, default, convert=int)
-
-
-class URLConfigBase(object):
+class URLConfigBase(EnvSettings):
 
     CONFIG = {}
 
-    @classmethod
-    def get(cls, varlist, default=None):
-        return get(varlist, default, convert=cls.parse)
+    def get(self, keys=(), default=None, auto_config=False):
+        if auto_config:
+            orig_default = default
+            default = lambda: self.get_auto_config_url() or orig_default
+        return super(URLConfigBase, self).get(keys, default,
+                convert=self.parse)
 
-    @classmethod
-    def parse(cls, url):
+    def parse(self, url):
         parsed_url = urlparse.urlparse(url)
         try:
-            default_config = cls.CONFIG[parsed_url.scheme]
+            default_config = self.CONFIG[parsed_url.scheme]
         except KeyError:
             raise ValueError(
                 'unrecognised URL scheme for {}: {}'.format(
-                    cls.__name__, parsed_url.scheme))
-        handler = cls.get_handler_for_scheme(parsed_url.scheme)
+                    self.__class__.__name__, parsed_url.geturl()))
+        handler = self.get_handler_for_scheme(parsed_url.scheme)
         config = copy.deepcopy(default_config)
         return handler(parsed_url, config)
 
-    @classmethod
-    def get_handler_for_scheme(cls, scheme):
+    def get_handler_for_scheme(self, scheme):
         method_name = 'handle_{}'.format(re.sub('\+\.\-', '_', scheme))
-        return getattr(cls, method_name, cls.generic_handler)
+        return getattr(self, method_name, self.generic_handler)
 
-    @classmethod
-    def generic_handler(cls, parsed_url, config):
+    def generic_handler(self, parsed_url, config):
         return config
 
-    @classmethod
-    def auto_config(cls, extra_vars=(), default=None):
-        method_list = [
-                getattr(cls, attr) for attr in sorted(dir(cls))
+    def get_auto_config_url(self):
+        auto_config_methods = [
+                getattr(self, attr) for attr in sorted(dir(self))
                 if attr.startswith('auto_config_')]
-        for method in method_list:
-            url = method()
+        for method in auto_config_methods:
+            url = method(self.environ)
             if url:
-                return cls.parse(url)
-        if not extra_vars and default is None:
-            raise ImproperlyConfigured(
-                    'Unable to auto-configure {}: no appropriate '
-                    'environment variables found'.format(cls.__name__))
-        return cls.get(extra_vars, default)
-
+                return url
 
 
 def is_importable(module_name):
     package = module_name.split('.')[0]
     try:
-        importlib.import_modulue(package)
+        importlib.import_module(package)
         return True
     except ImportError:
         return False

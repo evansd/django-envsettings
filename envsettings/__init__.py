@@ -1,7 +1,15 @@
-from .base import get, get_int, get_bool
-from .cache import cache
-from .database import database
-from .email import email, get_email_list
+from .base import EnvSettings
+from .cache import CacheConfig
+from .database import DatabaseConfig
+from .email import EmailConfig
 
-__all__ = ['get', 'get_int', 'get_bool', 'cache', 'database', 'email',
-            'get_email_list']
+
+envsettings = EnvSettings()
+
+get = envsettings.get
+get_int = envsettings.get_int
+get_bool = envsettings.get_bool
+
+cache = CacheConfig()
+database = DatabaseConfig()
+email = EmailConfig()

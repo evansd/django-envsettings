@@ -1,7 +1,7 @@
 from .base import URLConfigBase, urlparse
 
 
-class database(URLConfigBase):
+class DatabaseConfig(URLConfigBase):
 
     CONFIG = {
         'postgres': {'ENGINE': 'django.db.backends.postgresql_psycopg2'},
@@ -11,8 +11,7 @@ class database(URLConfigBase):
         'mysql2': {'ENGINE': 'django.db.backends.mysql'},
         'sqlite': {'ENGINE': 'django.db.backends.sqlite3'}}
 
-    @classmethod
-    def generic_handler(cls, parsed_url, config):
+    def generic_handler(self, parsed_url, config):
         config.update({
             'NAME': parsed_url.path[1:],
             'USER': parsed_url.username or '',
