@@ -84,3 +84,28 @@ class CacheConfig(URLConfigBase):
             config['BACKEND'] = 'django.core.cache.backends.memcached.PyLibMCCache'
             return
         config['BACKEND'] = 'django.core.cache.backends.memcached.MemcachedCache'
+
+    def auto_config_memcachier(self, environ, prefix='MEMCACHIER'):
+        try:
+            servers, username, password = [
+                    environ[prefix + key] for key in [
+                        '_SERVERS', '_USERNAME', '_PASSWORD']]
+        except KeyError:
+            return
+        return 'memcached-binary://{username}:{password}@{servers}'.format(
+            servers=servers, username=username, password=password)
+
+    def auto_config_memcachedcloud(self, environ):
+        return self.auto_config_memcachier(environ, prefix='MEMCACHEDCLOUD')
+
+    def auto_config_redistogo(self, environ):
+        return environ.get('REDISTOGO_URL')
+
+    def auto_config_rediscloud(self, environ):
+        return environ.get('REDISCLOUD_URL')
+
+    def auto_config_openredis(self, environ):
+        return environ.get('OPENREDIS_URL')
+
+    def auto_config_redisgreen(self, environ):
+        return environ.get('REDISGREEN_URL')
