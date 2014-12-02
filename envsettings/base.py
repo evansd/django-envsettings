@@ -8,11 +8,19 @@ except ImportError:
     import urllib.parse as urlparse
 
 from django.core.exceptions import ImproperlyConfigured
-from django.utils.log import DEFAULT_LOGGING
 try:
     from django.utils.encoding import smart_text
 except ImportError:
     from django.utils.encoding import smart_unicode as smart_text
+
+
+def is_importable(module_name):
+    package = module_name.split('.')[0]
+    try:
+        importlib.import_module(package)
+        return True
+    except ImportError:
+        return False
 
 
 class EnvSettings(object):
@@ -96,29 +104,3 @@ class URLConfigBase(EnvSettings):
             url = method(self.environ)
             if url:
                 return url
-
-
-def is_importable(module_name):
-    package = module_name.split('.')[0]
-    try:
-        importlib.import_module(package)
-        return True
-    except ImportError:
-        return False
-
-
-def get_logging_config(level='INFO'):
-    # Copy the default config so we can mutate it
-    config = copy.deepcopy(DEFAULT_LOGGING)
-    # Remove filters to allow console handler to work without DEBUG
-    # Set logging level to supplied value
-    config['handlers']['console'].update(filters=[], level=level)
-    # Allow `request` and `security` logs to propagate up to the
-    # root handler
-    config['loggers']['django.request']['propagate'] = True
-    try:
-        config['loggers']['django.security']['propagate'] = True
-    except KeyError:
-        # Older version of Django lack this logger
-        pass
-    return config
