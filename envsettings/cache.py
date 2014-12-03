@@ -1,7 +1,5 @@
 import re
 
-from django.core.exceptions import ImproperlyConfigured
-
 from .base import URLConfigBase, is_importable
 
 
@@ -69,21 +67,29 @@ class CacheConfig(URLConfigBase):
         return self.handle_memcached(parsed_url, config)
 
     def set_memcached_backend(self, config):
+        """
+        Select the most suitable Memcached backend based on the config and
+        on what's installed
+        """
+        # This is the preferred backend as it is the fastest and most fully
+        # featured, so we use this by default
         config['BACKEND'] = 'django_pylibmc.memcached.PyLibMCCache'
         if is_importable(config['BACKEND']):
             return
-        if config.get('BINARY'):
+        # Otherwise, binary connections can use this pure Python implementation
+        if config.get('BINARY') and is_importable('django_bmemcached'):
             config['BACKEND'] = 'django_bmemcached.memcached.BMemcached'
-            if is_importable(config['BACKEND']):
-                return
-        if 'USERNAME' in config or 'PASSWORD' in config:
-            raise ImproperlyConfigured('')
-        if config.get('BINARY'):
-            raise ImproperlyConfigured('')
-        if is_importable('pylibmc'):
-            config['BACKEND'] = 'django.core.cache.backends.memcached.PyLibMCCache'
             return
-        config['BACKEND'] = 'django.core.cache.backends.memcached.MemcachedCache'
+        # For text-based connections without any authentication we can fall
+        # back to Django's core backends if the supporting libraries are
+        # installed
+        if not any([config.get(key) for key in ('BINARY', 'USERNAME', 'PASSWORD')]):
+            if is_importable('pylibmc'):
+                config['BACKEND'] = \
+                        'django.core.cache.backends.memcached.PyLibMCCache'
+            elif is_importable('memcached'):
+                config['BACKEND'] = \
+                        'django.core.cache.backends.memcached.MemcachedCache'
 
     def auto_config_memcachier(self, environ, prefix='MEMCACHIER'):
         try:

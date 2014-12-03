@@ -1,5 +1,9 @@
 import copy
-import importlib
+try:
+    from importlib.util import find_spec
+except ImportError:
+    from imp import find_module
+    find_spec = False
 import os
 import re
 try:
@@ -14,13 +18,20 @@ except ImportError:
     from django.utils.encoding import smart_unicode as smart_text
 
 
-def is_importable(module_name):
-    package = module_name.split('.')[0]
-    try:
-        importlib.import_module(package)
-        return True
-    except ImportError:
-        return False
+if find_spec:
+    def is_importable(module_name):
+        package = module_name.split('.')[0]
+        return bool(find_spec(package))
+else:
+    def is_importable(module_name):
+        package = module_name.split('.')[0]
+        try:
+            f = find_module(package)[0]
+            if f:
+                f.close()
+            return True
+        except ImportError:
+            return False
 
 
 class EnvSettings(object):
@@ -28,7 +39,18 @@ class EnvSettings(object):
     def __init__(self, environ=os.environ):
         self.environ = environ
 
-    def get(self, keys, default=None, convert=smart_text):
+    def get(self, keys, default=None):
+        return self._get(keys, convert=smart_text, default=default)
+
+    def get_bool(self, keys, default=None):
+        return self._get(keys,
+                convert=self.parse_bool, default=default)
+
+    def get_int(self, keys, default=None):
+        return self._get(keys, convert=int, default=default)
+
+    def _get(self, keys, convert=lambda x:x, default=None):
+        # Accept single string argument and convert to list
         if hasattr(keys, 'strip'):
             keys = [keys]
         for key in keys:
@@ -57,25 +79,24 @@ class EnvSettings(object):
             return False
         else:
             raise ValueError(
-                    "invalid boolean '{}' (must be 'True' or 'False')".format(value))
-
-    def get_bool(self, keys, default=None):
-        return self.get(keys, default, convert=self.parse_bool)
-
-    def get_int(self, keys, default=None):
-        return self.get(keys, default, convert=int)
+                    "invalid boolean {!r} (must be 'True' or 'False')".format(value))
 
 
 class URLConfigBase(EnvSettings):
 
     CONFIG = {}
 
+    def __init__(self, *args, **kwargs):
+        super(URLConfigBase, self).__init__(*args, **kwargs)
+        # Each instance gets its own copy of the config so it
+        # can be safely mutated
+        self.CONFIG = copy.deepcopy(self.CONFIG)
+
     def get(self, keys=(), default=None, auto_config=False):
         if auto_config:
             orig_default = default
-            default = lambda: self.get_auto_config_url() or orig_default
-        return super(URLConfigBase, self).get(keys, default,
-                convert=self.parse)
+            default = lambda: self.get_auto_config_url(orig_default)
+        return self._get(keys, convert=self.parse, default=default)
 
     def parse(self, url):
         parsed_url = urlparse.urlparse(url)
@@ -96,7 +117,7 @@ class URLConfigBase(EnvSettings):
     def generic_handler(self, parsed_url, config):
         return config
 
-    def get_auto_config_url(self):
+    def get_auto_config_url(self, default=None):
         auto_config_methods = [
                 getattr(self, attr) for attr in sorted(dir(self))
                 if attr.startswith('auto_config_')]
@@ -104,3 +125,4 @@ class URLConfigBase(EnvSettings):
             url = method(self.environ)
             if url:
                 return url
+        return default if not callable(default) else default()
