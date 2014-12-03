@@ -8,8 +8,7 @@ from .base import EnvSettings
 class LoggingSettings(EnvSettings):
 
     def get(self, keys=(), default='INFO'):
-        return super(LoggingSettings, self).get(keys, default,
-                convert=self.parse_log_level)
+        return self._get(keys, convert=self.parse_log_level, default=default)
 
     def parse_log_level(self, level):
         # Copy the default config so we can mutate it
