@@ -1,8 +1,8 @@
 from .base import EnvSettings
-from .cache import CacheConfig
-from .database import DatabaseConfig
-from .email import EmailConfig
-from .logging import LoggingConfig
+from .cache import CacheSettings
+from .database import DatabaseSettings
+from .email import EmailSettings
+from .logging import LoggingSettings
 
 
 envsettings = EnvSettings()
@@ -11,7 +11,7 @@ get = envsettings.get
 get_int = envsettings.get_int
 get_bool = envsettings.get_bool
 
-cache = CacheConfig()
-database = DatabaseConfig()
-email = EmailConfig()
-logging = LoggingConfig()
+cache = CacheSettings()
+database = DatabaseSettings()
+email = EmailSettings()
+logging = LoggingSettings()

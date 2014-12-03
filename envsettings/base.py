@@ -82,12 +82,12 @@ class EnvSettings(object):
                     "invalid boolean {!r} (must be 'True' or 'False')".format(value))
 
 
-class URLConfigBase(EnvSettings):
+class URLSettingsBase(EnvSettings):
 
     CONFIG = {}
 
     def __init__(self, *args, **kwargs):
-        super(URLConfigBase, self).__init__(*args, **kwargs)
+        super(URLSettingsBase, self).__init__(*args, **kwargs)
         # Each instance gets its own copy of the config so it
         # can be safely mutated
         self.CONFIG = copy.deepcopy(self.CONFIG)

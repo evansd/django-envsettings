@@ -1,7 +1,7 @@
-from .base import URLConfigBase, urlparse
+from .base import URLSettingsBase, urlparse
 
 
-class DatabaseConfig(URLConfigBase):
+class DatabaseSettings(URLSettingsBase):
 
     CONFIG = {
         'postgres': {'ENGINE': 'django.db.backends.postgresql_psycopg2'},

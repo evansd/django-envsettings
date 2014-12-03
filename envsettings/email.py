@@ -2,10 +2,10 @@ from __future__ import absolute_import
 
 import email.utils as email_utils
 
-from .base import URLConfigBase, is_importable
+from .base import URLSettingsBase, is_importable
 
 
-class EmailConfig(URLConfigBase):
+class EmailSettings(URLSettingsBase):
 
     CONFIG = {
         'smtp': {'EMAIL_BACKEND': 'django.core.mail.backends.smtp.EmailBackend',

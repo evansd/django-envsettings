@@ -5,10 +5,10 @@ from django.utils.log import DEFAULT_LOGGING
 from .base import EnvSettings
 
 
-class LoggingConfig(EnvSettings):
+class LoggingSettings(EnvSettings):
 
     def get(self, keys=(), default='INFO'):
-        return super(LoggingConfig, self).get(keys, default,
+        return super(LoggingSettings, self).get(keys, default,
                 convert=self.parse_log_level)
 
     def parse_log_level(self, level):

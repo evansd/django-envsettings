@@ -1,9 +1,9 @@
 import re
 
-from .base import URLConfigBase, is_importable
+from .base import URLSettingsBase, is_importable
 
 
-class CacheConfig(URLConfigBase):
+class CacheSettings(URLSettingsBase):
 
     CONFIG = {
         'locmem': {'BACKEND': 'django.core.cache.backends.locmem.LocMemCache'},
