@@ -91,27 +91,27 @@ class CacheSettings(URLSettingsBase):
                 config['BACKEND'] = \
                         'django.core.cache.backends.memcached.MemcachedCache'
 
-    def auto_config_memcachier(self, environ, prefix='MEMCACHIER'):
+    def auto_config_memcachier(self, env, prefix='MEMCACHIER'):
         try:
             servers, username, password = [
-                    environ[prefix + key] for key in [
+                    env[prefix + key] for key in [
                         '_SERVERS', '_USERNAME', '_PASSWORD']]
         except KeyError:
             return
         return 'memcached-binary://{username}:{password}@{servers}'.format(
             servers=servers, username=username, password=password)
 
-    def auto_config_memcachedcloud(self, environ):
-        return self.auto_config_memcachier(environ, prefix='MEMCACHEDCLOUD')
+    def auto_config_memcachedcloud(self, env):
+        return self.auto_config_memcachier(env, prefix='MEMCACHEDCLOUD')
 
-    def auto_config_redistogo(self, environ):
-        return environ.get('REDISTOGO_URL')
+    def auto_config_redistogo(self, env):
+        return env.get('REDISTOGO_URL')
 
-    def auto_config_rediscloud(self, environ):
-        return environ.get('REDISCLOUD_URL')
+    def auto_config_rediscloud(self, env):
+        return env.get('REDISCLOUD_URL')
 
-    def auto_config_openredis(self, environ):
-        return environ.get('OPENREDIS_URL')
+    def auto_config_openredis(self, env):
+        return env.get('OPENREDIS_URL')
 
-    def auto_config_redisgreen(self, environ):
-        return environ.get('REDISGREEN_URL')
+    def auto_config_redisgreen(self, env):
+        return env.get('REDISGREEN_URL')

@@ -24,9 +24,8 @@ class EmailSettings(URLSettingsBase):
     def parse_address_list(address_string):
         return email_utils.getaddresses([address_string])
 
-    def get_address_list(self, keys, default=None):
-        return self._get(keys,
-                convert=self.parse_address_list, default=default)
+    def get_address_list(self, key, default=None):
+        return self.parse_address_list(self.env.get(key, default))
 
     def handle_smtp(self, parsed_url, config):
         if config.get('EMAIL_USE_TLS'):

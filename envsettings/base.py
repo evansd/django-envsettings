@@ -7,11 +7,10 @@ except ImportError:
 import os
 import re
 try:
-    import urlparse
-except ImportError:
     import urllib.parse as urlparse
+except ImportError:
+    import urlparse
 
-from django.core.exceptions import ImproperlyConfigured
 try:
     from django.utils.encoding import smart_text
 except ImportError:
@@ -36,50 +35,30 @@ else:
 
 class EnvSettings(object):
 
-    def __init__(self, environ=os.environ):
-        self.environ = environ
+    def __init__(self, env=os.environ):
+        self.env = env
 
-    def get(self, keys, default=None):
-        return self._get(keys, convert=smart_text, default=default)
+    def get(self, key, default=None):
+        return smart_text(self.env.get(key, default))
 
-    def get_bool(self, keys, default=None):
-        return self._get(keys,
-                convert=self.parse_bool, default=default)
+    def get_bool(self, key, default=None):
+        return self.parse_bool(self.env.get(key, default))
 
-    def get_int(self, keys, default=None):
-        return self._get(keys, convert=int, default=default)
+    def get_int(self, key, default=None):
+        return int(self.env.get(key, default))
 
-    def _get(self, keys, convert=lambda x:x, default=None):
-        # Accept single string argument and convert to list
-        if hasattr(keys, 'strip'):
-            keys = [keys]
-        for key in keys:
-            try:
-                value = self.environ[key]
-                break
-            except KeyError:
-                continue
-        else:
-            value = default if not callable(default) else default()
-        if value is None:
-            raise ImproperlyConfigured(
-                    'No environment variables matching {!r}'.format(keys))
-        return convert(value)
-
-    def parse_bool(self, value):
-        """
-        Converts 'True' and 'False' strings to booleans
-        """
-        if isinstance(value, bool):
-            return value
-        normalized = value.strip().lower()
-        if normalized == 'true':
+    @staticmethod
+    def parse_bool(value):
+        # Accept bools as well as strings so we can pass them
+        # as default values
+        if value == 'True' or value == True:
             return True
-        elif normalized == 'false':
+        elif value == 'False' or value == False:
             return False
         else:
             raise ValueError(
-                    "invalid boolean {!r} (must be 'True' or 'False')".format(value))
+                    "invalid boolean {!r} (must be 'True' or "
+                    "'False')".format(value))
 
 
 class URLSettingsBase(EnvSettings):
@@ -92,11 +71,13 @@ class URLSettingsBase(EnvSettings):
         # can be safely mutated
         self.CONFIG = copy.deepcopy(self.CONFIG)
 
-    def get(self, keys=(), default=None, auto_config=False):
-        if auto_config:
-            orig_default = default
-            default = lambda: self.get_auto_config_url(orig_default)
-        return self._get(keys, convert=self.parse, default=default)
+    def get(self, key=None, default=None, auto_config=False):
+        value = self.env.get(key) if key else None
+        if value is None and auto_config:
+            value = self.get_auto_config_url()
+        if value is None:
+            value = default
+        return self.parse(value)
 
     def parse(self, url):
         parsed_url = urlparse.urlparse(url)
@@ -105,7 +86,7 @@ class URLSettingsBase(EnvSettings):
         except KeyError:
             raise ValueError(
                 'unrecognised URL scheme for {}: {}'.format(
-                    self.__class__.__name__, parsed_url.geturl()))
+                    self.__class__.__name__, url))
         handler = self.get_handler_for_scheme(parsed_url.scheme)
         config = copy.deepcopy(default_config)
         return handler(parsed_url, config)
@@ -117,12 +98,11 @@ class URLSettingsBase(EnvSettings):
     def generic_handler(self, parsed_url, config):
         return config
 
-    def get_auto_config_url(self, default=None):
+    def get_auto_config_url(self):
         auto_config_methods = [
                 getattr(self, attr) for attr in sorted(dir(self))
                 if attr.startswith('auto_config_')]
         for method in auto_config_methods:
-            url = method(self.environ)
+            url = method(self.env)
             if url:
                 return url
-        return default if not callable(default) else default()
