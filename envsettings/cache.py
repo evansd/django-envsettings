@@ -14,18 +14,18 @@ class CacheSettings(URLSettingsBase):
         'redis': {'BACKEND': 'redis_cache.cache.RedisCache'},
     }
 
-    def handle_file(self, parsed_url, config):
+    def handle_file_url(self, parsed_url, config):
         if parsed_url.path == '/dev/null':
             config['BACKEND'] = 'django.core.cache.backends.dummy.DummyCache'
         else:
             config['LOCATION'] = parsed_url.path
         return config
 
-    def handle_locmem(self, parsed_url, config):
+    def handle_locmem_url(self, parsed_url, config):
         config['LOCATION'] = parsed_url.hostname + parsed_url.path
         return config
 
-    def handle_redis(self, parsed_url, config):
+    def handle_redis_url(self, parsed_url, config):
         if parsed_url.hostname:
             db_num = parsed_url.path[1:]
             location = '{}:{}:{}'.format(
@@ -42,7 +42,7 @@ class CacheSettings(URLSettingsBase):
             config.setdefault('OPTIONS', {})['PASSWORD'] = parsed_url.password
         return config
 
-    def handle_memcached(self, parsed_url, config):
+    def handle_memcached_url(self, parsed_url, config):
         if parsed_url.hostname:
             netloc = parsed_url.netloc.split('@')[-1]
             if ',' in netloc:
@@ -63,8 +63,8 @@ class CacheSettings(URLSettingsBase):
             self.set_memcached_backend(config)
         return config
 
-    def handle_memcached_binary(self, parsed_url, config):
-        return self.handle_memcached(parsed_url, config)
+    def handle_memcached_binary_url(self, parsed_url, config):
+        return self.handle_memcached_url(parsed_url, config)
 
     def set_memcached_backend(self, config):
         """
@@ -98,7 +98,7 @@ class CacheSettings(URLSettingsBase):
                         '_SERVERS', '_USERNAME', '_PASSWORD']]
         except KeyError:
             return
-        return 'memcached-binary://{username}:{password}@{servers}'.format(
+        return 'memcached-binary://{username}:{password}@{servers}/'.format(
             servers=servers, username=username, password=password)
 
     def auto_config_memcachedcloud(self, env):

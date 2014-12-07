@@ -9,9 +9,10 @@ class DatabaseSettings(URLSettingsBase):
         'postgis': {'ENGINE': 'django.contrib.gis.db.backends.postgis'},
         'mysql': {'ENGINE': 'django.db.backends.mysql'},
         'mysql2': {'ENGINE': 'django.db.backends.mysql'},
-        'sqlite': {'ENGINE': 'django.db.backends.sqlite3'}}
+        'sqlite': {'ENGINE': 'django.db.backends.sqlite3'},
+    }
 
-    def generic_handler(self, parsed_url, config):
+    def handle_url(self, parsed_url, config):
         config.update({
             'NAME': parsed_url.path[1:],
             'USER': parsed_url.username or '',

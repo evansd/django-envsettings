@@ -5,7 +5,7 @@ from django.utils.log import DEFAULT_LOGGING
 from .base import EnvSettings
 
 
-def modify_default_config(config):
+def modify_django_config(config):
     # Copy the config so we can mutate it
     config = copy.deepcopy(config)
     # Remove filters to allow console handler to work without DEBUG
@@ -23,7 +23,9 @@ def modify_default_config(config):
 
 class LoggingSettings(EnvSettings):
 
-    CONFIG = modify_default_config(DEFAULT_LOGGING)
+    # Our default config is a slightly modified version of the Django
+    # default
+    CONFIG = modify_django_config(DEFAULT_LOGGING)
     LOG_LEVEL_KEY = ('handlers', 'console', 'level')
 
     def __init__(self, *args, **kwargs):
@@ -31,6 +33,10 @@ class LoggingSettings(EnvSettings):
         self.CONFIG = copy.deepcopy(self.CONFIG)
 
     def get(self, key, default='INFO'):
+        """
+        Return a copy of the logging config with the `LOG_LEVEL_KEY` set to the
+        supplied level
+        """
         level = self.env.get(key, default)
         config = copy.deepcopy(self.CONFIG)
         self.set_nested_key(config, self.LOG_LEVEL_KEY, level)

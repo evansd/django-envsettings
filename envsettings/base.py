@@ -19,9 +19,14 @@ except ImportError:
 
 if find_spec:
     def is_importable(module_name):
+        """
+        Test if a package (just the top-level) is importable, without
+        actually importing it
+        """
         package = module_name.split('.')[0]
         return bool(find_spec(package))
 else:
+    # For Python < 3.4
     def is_importable(module_name):
         package = module_name.split('.')[0]
         try:
@@ -62,6 +67,10 @@ class EnvSettings(object):
 
 
 class URLSettingsBase(EnvSettings):
+    """
+    Base class which from which all other URL-based configuration
+    classes inherit
+    """
 
     CONFIG = {}
 
@@ -74,12 +83,15 @@ class URLSettingsBase(EnvSettings):
     def get(self, key=None, default=None, auto_config=False):
         value = self.env.get(key) if key else None
         if value is None and auto_config:
-            value = self.get_auto_config_url()
+            value = self.get_auto_config()
         if value is None:
             value = default
         return self.parse(value)
 
     def parse(self, url):
+        """
+        Return a configuration dict from a URL
+        """
         parsed_url = urlparse.urlparse(url)
         try:
             default_config = self.CONFIG[parsed_url.scheme]
@@ -92,17 +104,21 @@ class URLSettingsBase(EnvSettings):
         return handler(parsed_url, config)
 
     def get_handler_for_scheme(self, scheme):
-        method_name = 'handle_{}'.format(re.sub('\+\.\-', '_', scheme))
-        return getattr(self, method_name, self.generic_handler)
+        method_name = 'handle_{}_url'.format(re.sub('[\+\.\-]', '_', scheme))
+        return getattr(self, method_name, self.handle_url)
 
-    def generic_handler(self, parsed_url, config):
+    def handle_url(self, parsed_url, config):
+        # Default implementation does nothing
         return config
 
-    def get_auto_config_url(self):
-        auto_config_methods = [
-                getattr(self, attr) for attr in sorted(dir(self))
-                if attr.startswith('auto_config_')]
-        for method in auto_config_methods:
-            url = method(self.env)
+    def get_auto_config(self):
+        """
+        Walk over all available auto_config methods, passing them the current
+        environment and seeing if they return a configuration URL
+        """
+        methods = [m for m in dir(self) if m.startswith('auto_config_')]
+        for method_name in sorted(methods):
+            auto_config_method = getattr(self, method_name)
+            url = auto_config_method(self.env)
             if url:
                 return url

@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 
-import email.utils as email_utils
+import email.utils
 
 from .base import URLSettingsBase, is_importable
 
@@ -22,12 +22,15 @@ class EmailSettings(URLSettingsBase):
 
     @staticmethod
     def parse_address_list(address_string):
-        return email_utils.getaddresses([address_string])
+        """
+        Takes an email address list string and returns a list of (name, address) pairs
+        """
+        return email.utils.getaddresses([address_string])
 
     def get_address_list(self, key, default=None):
         return self.parse_address_list(self.env.get(key, default))
 
-    def handle_smtp(self, parsed_url, config):
+    def handle_smtp_url(self, parsed_url, config):
         if config.get('EMAIL_USE_TLS'):
             default_port = 587
         elif config.get('EMAIL_USE_SSL'):
@@ -41,10 +44,10 @@ class EmailSettings(URLSettingsBase):
             'EMAIL_HOST_PASSWORD': parsed_url.password or ''})
         return config
 
-    def handle_smtps(self, parsed_url, config):
-        return self.handle_smtp(parsed_url, config)
+    def handle_smtps_url(self, parsed_url, config):
+        return self.handle_smtp_url(parsed_url, config)
 
-    def handle_file(self, parsed_url, config):
+    def handle_file_url(self, parsed_url, config):
         if parsed_url.path == '/dev/stdout':
             config['EMAIL_BACKEND'] = 'django.core.mail.backends.console.EmailBackend'
         elif parsed_url.path == '/dev/null':
@@ -53,7 +56,7 @@ class EmailSettings(URLSettingsBase):
             config['EMAIL_FILE_PATH'] = parsed_url.path
         return config
 
-    def handle_mailgun(self, parsed_url, config):
+    def handle_mailgun_url(self, parsed_url, config):
         config['MAILGUN_ACCESS_KEY'] = parsed_url.password
         config['MAILGUN_SERVER_NAME'] = parsed_url.hostname
         return config
@@ -74,7 +77,7 @@ class EmailSettings(URLSettingsBase):
             return 'smtps://{login}:{password}@{server}:{port}'.format(
                     login=login, password=password, server=server, port=port)
 
-    def handle_sendgrid(self, parsed_url, config):
+    def handle_sendgrid_url(self, parsed_url, config):
         config['SENDGRID_USER'] = parsed_url.username
         config['SENDGRID_PASSWORD'] = parsed_url.password
         return config
@@ -91,7 +94,7 @@ class EmailSettings(URLSettingsBase):
             return 'smtps://{user}:{password}@smtp.sendgrid.net:587'.format(
                     user=user, password=password)
 
-    def handle_mandrill(self, parsed_url, config):
+    def handle_mandrill_url(self, parsed_url, config):
         config['MANDRILL_API_KEY'] = parsed_url.password
         if parsed_url.username:
             config['MANDRILL_SUBACCOUNT'] = parsed_url.username
@@ -109,7 +112,7 @@ class EmailSettings(URLSettingsBase):
             return 'smtps://{user}:{api_key}@smtp.mandrillapp.com:587'.format(
                     user=user, api_key=api_key)
 
-    def handle_ses(self, parsed_url, config):
+    def handle_ses_url(self, parsed_url, config):
         if parsed_url.username:
             config['AWS_SES_ACCESS_KEY_ID'] = parsed_url.username
         if parsed_url.password:
@@ -121,7 +124,7 @@ class EmailSettings(URLSettingsBase):
                 config['AWS_SES_REGION_NAME'] = parsed_url.hostname
         return config
 
-    def handle_postmark(self, parsed_url, config):
+    def handle_postmark_url(self, parsed_url, config):
         config['POSTMARK_API_KEY'] = parsed_url.password
         return config
 
