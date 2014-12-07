@@ -1,0 +1,8 @@
+include README.rst
+include LICENSE
+include tox.ini
+recursive-include envsettings *
+recursive-include docs *
+recursive-exclude * __pycache__
+recursive-exclude * *.py[co]
+prune docs/_build
