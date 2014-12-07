@@ -2,7 +2,6 @@ from .base import EnvSettings
 from .cache import CacheSettings
 from .database import DatabaseSettings
 from .email import EmailSettings
-from .logging import LoggingSettings
 
 
 envsettings = EnvSettings()
@@ -14,4 +13,3 @@ get_bool = envsettings.get_bool
 cache = CacheSettings()
 database = DatabaseSettings()
 email = EmailSettings()
-logging = LoggingSettings()
