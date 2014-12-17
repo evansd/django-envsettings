@@ -18,7 +18,7 @@ setup(
     url='http://github.com/evansd/django-envsettings',
     packages=find_packages(exclude=['tests*']),
     license='MIT',
-    description="One-stop shop for configuring 12 factor Django apps",
+    description="One-stop shop for configuring 12-factor Django apps",
     long_description=read('README.rst'),
     classifiers=[
         'Development Status :: 3 - Alpha',
