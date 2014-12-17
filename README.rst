@@ -2,7 +2,7 @@ Django EnvSettings
 ==================
 
 .. image:: https://travis-ci.org/evansd/django-envsettings.png
-   :target:  https://travis-ci.org/evansd/whitenoise
+   :target:  https://travis-ci.org/evansd/django-envsettings
    :alt: Build Status
 
 .. image:: https://badge.fury.io/py/django-envsettings.png
