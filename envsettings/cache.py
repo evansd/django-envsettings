@@ -104,6 +104,9 @@ class CacheSettings(URLSettingsBase):
     def auto_config_memcachedcloud(self, env):
         return self.auto_config_memcachier(env, prefix='MEMCACHEDCLOUD')
 
+    def auto_config_redis_url(self, env):
+        return env.get('REDIS_URL')
+
     def auto_config_redistogo(self, env):
         return env.get('REDISTOGO_URL')
 
