@@ -131,7 +131,7 @@ Cache Settings
 
     import envsettings
 
-    CACHES = {'default': envsettings.cache.get('CACHE_URL', 'locmen://')}
+    CACHES = {'default': envsettings.cache.get('CACHE_URL', 'locmem://')}
 
 
 Example URLs
