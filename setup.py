@@ -12,7 +12,7 @@ def read(*path):
 
 setup(
     name='django-envsettings',
-    version='0.1',
+    version='1.0',
     author='David Evans',
     author_email='d@evans.io',
     url='http://github.com/evansd/django-envsettings',
