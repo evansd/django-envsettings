@@ -22,7 +22,8 @@ class CacheSettings(URLSettingsBase):
         return config
 
     def handle_locmem_url(self, parsed_url, config):
-        config['LOCATION'] = parsed_url.hostname + parsed_url.path
+        config['LOCATION'] = '{0}{1}'.format(
+                parsed_url.hostname or '', parsed_url.path or '')
         return config
 
     def handle_redis_url(self, parsed_url, config):

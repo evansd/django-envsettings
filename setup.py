@@ -12,7 +12,7 @@ def read(*path):
 
 setup(
     name='django-envsettings',
-    version='1.0',
+    version='1.0.1',
     author='David Evans',
     author_email='d@evans.io',
     url='http://github.com/evansd/django-envsettings',
@@ -21,7 +21,7 @@ setup(
     description="One-stop shop for configuring 12-factor Django apps",
     long_description=read('README.rst'),
     classifiers=[
-        'Development Status :: 3 - Alpha',
+        'Development Status :: 5 - Production/Stable',
         'Framework :: Django',
         'Intended Audience :: Developers',
         'License :: OSI Approved :: MIT License',
