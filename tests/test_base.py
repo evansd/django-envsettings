@@ -35,11 +35,11 @@ class TestEnvSettings:
 class TestCacheSettings:
 
     def test_redis_url(self):
-        url = 'redis://:mypassword@example.com:999/4'
+        url = 'redis://:mypassword@/path/to/socket'
         config = {
-            'BACKEND': 'redis_cache.cache.RedisCache',
-            'LOCATION': 'example.com:999:4',
-            'OPTIONS': {'PASSWORD': 'mypassword'},
+            'BACKEND': 'django_redis.cache.RedisCache',
+            'LOCATION': 'unix://:mypassword@/path/to/socket',
+            'OPTIONS': {},
         }
         assert config == get_from(CacheSettings, url)
 

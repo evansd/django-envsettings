@@ -1,9 +1,9 @@
-import re
-
 from .base import URLSettingsBase, is_importable
 
 
 class CacheSettings(URLSettingsBase):
+
+    REDIS_CONFIG = {'BACKEND': 'django_redis.cache.RedisCache', 'OPTIONS': {}}
 
     CONFIG = {
         'locmem': {'BACKEND': 'django.core.cache.backends.locmem.LocMemCache'},
@@ -11,7 +11,8 @@ class CacheSettings(URLSettingsBase):
         # Memcached backends are auto-selected based on what packages are installed
         'memcached': {'BACKEND': None},
         'memcached-binary': {'BACKEND': None, 'BINARY': True},
-        'redis': {'BACKEND': 'redis_cache.cache.RedisCache'},
+        'redis': REDIS_CONFIG,
+        'rediss': REDIS_CONFIG
     }
 
     def handle_file_url(self, parsed_url, config):
@@ -27,21 +28,13 @@ class CacheSettings(URLSettingsBase):
         return config
 
     def handle_redis_url(self, parsed_url, config):
-        if parsed_url.hostname:
-            db_num = parsed_url.path[1:]
-            location = '{}:{}:{}'.format(
-                    parsed_url.hostname,
-                    parsed_url.port or 637,
-                    db_num or '0')
-        else:
-            location = 'unix:{}' + parsed_url.path
-            # Add default db number if none specified
-            if not re.search(':[\d]+$', parsed_url.path):
-                location += ':0'
-        config['LOCATION'] = location
-        if parsed_url.password:
-            config.setdefault('OPTIONS', {})['PASSWORD'] = parsed_url.password
+        if not parsed_url.hostname:
+            parsed_url = parsed_url._replace(scheme='unix')
+        config['LOCATION'] = parsed_url.geturl()
         return config
+
+    def handle_rediss_url(self, parsed_url, config):
+        return self.handle_redis_url(parsed_url, config)
 
     def handle_memcached_url(self, parsed_url, config):
         if parsed_url.hostname:
