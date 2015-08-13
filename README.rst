@@ -1,11 +1,11 @@
 Django EnvSettings
 ==================
 
-.. image:: https://travis-ci.org/evansd/django-envsettings.png
+.. image:: https://img.shields.io/travis/evansd/django-envsettings.svg
    :target:  https://travis-ci.org/evansd/django-envsettings
    :alt: Build Status
 
-.. image:: https://badge.fury.io/py/django-envsettings.png
+.. image:: https://img.shields.io/pypi/v/django-envsettings.svg
     :target: https://pypi.python.org/pypi/django-envsettings
     :alt: Latest PyPI version
 
